@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV数据验证测试</title>
+</head>
+<body>
+    <h1>CSV数据验证测试</h1>
+    <p>正在加载并验证CSV数据...</p>
+    <div id="result"></div>
+
+    <script>
+        // 测试CSV解析逻辑
+        async function testCSVData() {
+            try {
+                const response = await fetch('data/接单结果统计表.csv');
+                const content = await response.text();
+                
+                // 使用与主程序相同的解析逻辑
+                const rows = parseCSV(content);
+                
+                // 过滤有效数据行（与修改后的逻辑一致）
+                const csvData = rows.slice(1).filter(row => {
+                    return row.length > 0 && row[0] && row[0].toString().trim() !== "" && !isNaN(parseInt(row[0]));
+                });
+                
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = `
+                    <h2>CSV数据验证结果：</h2>
+                    <p>总行数（包括表头）: ${rows.length}</p>
+                    <p>有效数据行数: ${csvData.length}</p>
+                    <p>如果有效数据行数为13，则说明修改成功！</p>
+                    <h3>前几行数据预览：</h3>
+                    <pre>${JSON.stringify(csvData.slice(0, 5), null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `<p style="color:red;">错误：${error.message}</p>`;
+            }
+        }
+
+        /**
+         * 解析CSV内容（正确处理跨行字段）
+         */
+        function parseCSV(content) {
+            const lines = [];
+            let currentLine = "";
+            let inQuotes = false;
+
+            for (let i = 0; i < content.length; i++) {
+                const char = content[i];
+                const nextChar = content[i + 1];
+
+                if (char === '"' && !inQuotes) {
+                    // 开始引号
+                    inQuotes = true;
+                    currentLine += char;
+                } else if (char === '"' && inQuotes && nextChar !== '"') {
+                    // 结束引号（下一个字符不是引号）
+                    inQuotes = false;
+                    currentLine += char;
+                } else if (
+                    (char === "\n" || (char === "\r" && nextChar === "\n")) &&
+                    !inQuotes
+                ) {
+                    // 行结束符（不在引号内）
+                    if (char === "\r") {
+                        i++; // 跳过\n
+                    }
+                    // 移除可能的BOM标记
+                    if (currentLine.charCodeAt(0) === 0xfeff) {
+                        currentLine = currentLine.slice(1);
+                    }
+                    lines.push(currentLine);
+                    currentLine = "";
+                } else {
+                    // 普通字符
+                    currentLine += char;
+                }
+            }
+
+            // 添加最后一行（如果有内容）
+            if (currentLine) {
+                // 移除可能的BOM标记
+                if (currentLine.charCodeAt(0) === 0xfeff) {
+                    currentLine = currentLine.slice(1);
+                }
+                lines.push(currentLine);
+            }
+
+            // 解析每一行
+            return lines.map((line) => parseCSVLine(line));
+        }
+
+        /**
+         * 解析单行CSV（支持带引号的字段，如"学员姓名(带学号)"）
+         */
+        function parseCSVLine(line) {
+            const cells = [];
+            let inQuotes = false;
+            let currentCell = "";
+            let i = 0;
+
+            while (i < line.length) {
+                const char = line[i];
+                const nextChar = line[i + 1];
+
+                if (char === '"' && !inQuotes) {
+                    // 开始引号
+                    inQuotes = true;
+                    // 不添加引号到currentCell
+                } else if (char === '"' && inQuotes && nextChar === '"') {
+                    // 双引号转义
+                    currentCell += '"';
+                    i++; // 跳过下一个引号
+                } else if (char === '"' && inQuotes) {
+                    // 结束引号
+                    inQuotes = false;
+                    // 不添加引号到currentCell
+                } else if (char === "," && !inQuotes) {
+                    // 字段分隔符
+                    cells.push(currentCell.trim());
+                    currentCell = "";
+                } else {
+                    // 普通字符
+                    currentCell += char;
+                }
+
+                i++;
+            }
+
+            // 添加最后一个字段
+            cells.push(currentCell.trim());
+
+            return cells;
+        }
+
+        // 页面加载完成后运行测试
+        window.onload = testCSVData;
+    </script>
+</body>
+</html>
