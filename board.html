@@ -677,6 +677,26 @@
       const pageSize = 10; // 每页条数
       const csvFilePath = "data/接单结果统计表.csv"; // 固定文件路径
 
+      // 发送消息给父页面以调整iframe高度
+      function sendHeightToParent() {
+        const height = Math.max(
+          document.body.scrollHeight,
+          document.body.offsetHeight,
+          document.documentElement.clientHeight,
+          document.documentElement.scrollHeight,
+          document.documentElement.offsetHeight
+        );
+
+        // 向父窗口发送高度信息
+        parent.postMessage(
+          {
+            type: "resizeIframe",
+            height: height + 50, // 增加一些额外空间
+          },
+          "*"
+        );
+      }
+
       // 页面加载完成后自动读取CSV
       window.onload = function () {
         document.getElementById("updateTime").textContent =
@@ -686,6 +706,9 @@
         } catch (error) {
           console.error("加载CSV文件时发生错误:", error);
         }
+
+        // 页面加载完成后也发送高度信息
+        setTimeout(sendHeightToParent, 500); // 稍长延迟确保内容完全加载
       };
 
       /**
@@ -748,6 +771,9 @@
             document.getElementById("filterSection").style.display = "block";
             document.getElementById("indicatorSection").style.display = "flex";
             document.getElementById("paginationSection").style.display = "flex";
+
+            // 发送高度给父页面
+            setTimeout(sendHeightToParent, 100); // 稍微延迟确保DOM完全渲染
           })
           .catch((error) => {
             // 显示错误信息
