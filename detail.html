@@ -543,13 +543,67 @@
         }
       }
 
+      .info-section {
+        transition: all 0.3s ease;
+        position: relative;
+      }
+
       .info-section:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.12);
+        background: #fafbff;
+        border-color: #e0e7ff;
+      }
+
+      .info-section-title {
+        transition: all 0.3s ease;
+      }
+
+      .info-section:hover .info-section-title {
+        color: #667eea;
+        transform: translateX(3px);
       }
 
       .order-item {
         transition: all 0.3s ease;
+      }
+
+      /* 返回按钮样式 */
+      .back-button,
+      .back-to-home-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 10px 20px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+      }
+
+      .back-button:hover,
+      .back-to-home-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+      }
+
+      .back-button i,
+      .back-to-home-btn i {
+        font-size: 1rem;
+      }
+
+      /* 调整返回首页按钮在小屏幕上的样式 */
+      @media (max-width: 768px) {
+        .back-to-home-btn {
+          padding: 8px 15px;
+          font-size: 0.85rem;
+        }
       }
 
       @media (max-width: 992px) {
@@ -724,10 +778,10 @@
 
     <div class="container">
       <!-- Added top margin to account for fixed nav -->
-      <div class="header" style="position: sticky">
+      <!-- <div class="header" style="position: sticky">
         <h1><i class="fas fa-file-alt"></i> 商单详情</h1>
         <p>查看商单的详细信息</p>
-      </div>
+      </div> -->
 
       <div id="detail-content">
         <div class="loading">
@@ -766,7 +820,7 @@
       // 从CSV加载所有订单数据
       async function loadAllOrders() {
         try {
-          const response = await fetch("data/商单信息统计.csv");
+          const response = await fetch("data/任务统计表.csv");
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
@@ -788,20 +842,46 @@
           .filter((line) => line.trim() !== "");
         if (lines.length < 2) return [];
 
-        const headers = lines[0].split(",").map((header) => header.trim());
+        // 手动定义表头，因为CSV第一行的格式有问题
+        const headers = [
+          "单子名称",
+          "任务类型",
+          "订单渠道",
+          "接单结果",
+          "金额",
+          "订单完成日期",
+          "接单人员",
+          "截图",
+          "交付学员结果",
+          "学员实收金额",
+        ];
         const orders = [];
 
         for (let i = 1; i < lines.length; i++) {
           const currentLine = lines[i].trim();
-          if (currentLine === "") continue;
+          if (
+            currentLine === "" ||
+            currentLine === ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          )
+            continue;
 
           const values = parseCSVLine(currentLine);
-          if (values.length !== headers.length) continue;
+          if (values.length < 6) continue;
 
-          const order = {};
-          headers.forEach((header, index) => {
-            order[header] = values[index] ? values[index].trim() : "";
-          });
+          // 创建订单对象，映射到与之前代码兼容的字段名
+          const order = {
+            商单id: i, // 使用行号作为商单id
+            商单标题: values[0] ? values[0].trim() : "",
+            需求类型: values[1] ? values[1].trim() : "",
+            商单状态: values[3] ? values[3].trim() : "",
+            预算范围: values[4] ? values[4].trim() : "",
+            发布时间: values[5] ? values[5].trim() : "",
+            项目进度: values[3]
+              ? values[3].trim().includes("已完成")
+                ? "已完成"
+                : "进行中"
+              : "进行中",
+          };
           orders.push(order);
         }
 
@@ -843,6 +923,87 @@
         return orders.find((order) => order["商单id"] == id);
       }
 
+      // 随机生成客户信息
+      function generateRandomClientInfo() {
+        // 随机客户名称
+        const companyNames = [
+          "科技",
+          "信息技术",
+          "互联网",
+          "数据",
+          "智能",
+          "数字",
+          "网络",
+          "软件",
+          "电子",
+          "通信",
+        ];
+        const regions = [
+          "北京",
+          "上海",
+          "广州",
+          "深圳",
+          "杭州",
+          "成都",
+          "武汉",
+          "南京",
+          "西安",
+          "重庆",
+        ];
+        const suffixes = [
+          "有限公司",
+          "科技有限公司",
+          "信息技术有限公司",
+          "网络科技有限公司",
+          "智能科技有限公司",
+        ];
+
+        const randomRegion =
+          regions[Math.floor(Math.random() * regions.length)];
+        const randomName =
+          companyNames[Math.floor(Math.random() * companyNames.length)];
+        const randomSuffix =
+          suffixes[Math.floor(Math.random() * suffixes.length)];
+        const clientName = `${randomRegion}${randomName}${randomSuffix}`;
+
+        // 随机客户类型
+        const clientTypes = [
+          "企业客户",
+          "个人客户",
+          "政府客户",
+          "非盈利组织",
+          "教育机构",
+          "医疗机构",
+        ];
+        const clientType =
+          clientTypes[Math.floor(Math.random() * clientTypes.length)];
+
+        // 随机信用等级 (1-5颗星)
+        const creditLevel = Math.floor(Math.random() * 5) + 1;
+        const creditStars =
+          "★".repeat(creditLevel) + "☆".repeat(5 - creditLevel);
+
+        // 随机合作历史
+        const cooperationHistories = [
+          "良好",
+          "一般",
+          "首次合作",
+          "长期合作",
+          "优质合作",
+        ];
+        const cooperationHistory =
+          cooperationHistories[
+            Math.floor(Math.random() * cooperationHistories.length)
+          ];
+
+        return {
+          clientName,
+          clientType,
+          creditStars,
+          cooperationHistory,
+        };
+      }
+
       // 渲染订单详情
       function renderOrderDetail(order) {
         if (!order) {
@@ -851,6 +1012,9 @@
           ).innerHTML = `<div class="error"><i class="fas fa-exclamation-triangle"></i> 未找到订单信息</div>`;
           return;
         }
+
+        // 生成随机客户信息
+        const clientInfo = generateRandomClientInfo();
 
         // 确定进度状态类
         let progressClass = "progress-active";
@@ -871,8 +1035,13 @@
         document.getElementById("detail-content").innerHTML = `
         <div class="detail-content fade-in">
           <div class="main-content">
-            <div class="order-header">
-              <div class="order-title">${order["商单标题"]}</div>
+            <div class="order-header" style="display: flex; flex-direction: column; gap: 15px;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div class="order-title">${order["商单标题"]}</div>
+                <button class="back-to-home-btn" onclick="goBack()">
+                  <i class="fas fa-home"></i> 返回首页
+                </button>
+              </div>
               <div class="order-meta">
                 <span class="order-type">${order["需求类型"]}</span>
                 <span class="order-status ${statusClass}">${
@@ -945,19 +1114,19 @@
               <div class="info-grid">
                 <div class="info-item">
                   <div class="info-label">客户名称</div>
-                  <div class="info-value">企业用户</div>
+                  <div class="info-value">${clientInfo.clientName}</div>
                 </div>
                 <div class="info-item">
                   <div class="info-label">客户类型</div>
-                  <div class="info-value">企业客户</div>
+                  <div class="info-value">${clientInfo.clientType}</div>
                 </div>
                 <div class="info-item">
                   <div class="info-label">信用等级</div>
-                  <div class="info-value">★★★★★</div>
+                  <div class="info-value">${clientInfo.creditStars}</div>
                 </div>
                 <div class="info-item">
                   <div class="info-label">合作历史</div>
-                  <div class="info-value">良好</div>
+                  <div class="info-value">${clientInfo.cooperationHistory}</div>
                 </div>
               </div>
             </div>

@@ -479,6 +479,7 @@
         flex-direction: column;
         position: relative;
         transform-style: preserve-3d;
+        cursor: pointer;
       }
 
       .order-card:hover {
@@ -873,6 +874,131 @@
         background-color: #c3c4c7;
       }
 
+      /* 表格样式 */
+      .table-section {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        margin-top: 30px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+      }
+
+      .table-title {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: #2c3e50;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .table-title i {
+        color: #4a90e2;
+        font-size: 20px;
+      }
+
+      .table-container {
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-radius: 8px;
+        border: 1px solid #f0f2f5;
+        position: relative;
+        height: 400px;
+      }
+
+      .result-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+
+      .result-table th {
+        background: linear-gradient(135deg, #f8f9ff 0%, #e4edf5 100%);
+        color: #2c3e50;
+        font-weight: 600;
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 2px solid #4a90e2;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .result-table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #f0f2f5;
+        color: #57606f;
+      }
+
+      .result-table tr:hover {
+        background-color: #f8f9ff;
+        transition: background-color 0.2s ease;
+      }
+
+      .result-table tr:nth-child(even) {
+        background-color: #fafbff;
+      }
+
+      /* 滚动动画容器 */
+      .scroll-container {
+        animation: scrollUp 20s linear infinite;
+      }
+
+      /* 无缝滚动动画 */
+      @keyframes scrollUp {
+        0% {
+          transform: translateY(0);
+        }
+        100% {
+          transform: translateY(-50%);
+        }
+      }
+
+      /* 当鼠标悬停时暂停滚动 */
+      .table-container:hover .scroll-container {
+        animation-play-state: paused;
+      }
+
+      /* 确保表头固定 */
+      .scroll-wrapper {
+        position: relative;
+      }
+
+      /* 滚动表格样式 */
+      .result-table-scroll {
+        border-top: none;
+        margin-top: -1px;
+        width: 100%;
+        table-layout: fixed;
+      }
+
+      /* 隐藏滚动表格的表头 */
+      .result-table-scroll thead {
+        display: none;
+      }
+
+      /* 确保两个表格列宽一致 */
+      .result-table {
+        table-layout: fixed;
+      }
+
+      /* 确保表头和表体的列宽完全匹配 */
+      .result-table th,
+      .result-table td {
+        width: auto;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* 调整表格内边距，确保表头和表体对齐 */
+      .result-table-scroll td {
+        border-top: none;
+        padding: 12px 15px;
+      }
+
+      /* 响应式表格 */
       @media (max-width: 768px) {
         .order-list {
           grid-template-columns: 1fr;
@@ -1487,6 +1613,26 @@
             <button id="nextPage"><i class="fas fa-chevron-right"></i></button>
           </div>
         </div>
+
+        <!-- 接单结果统计表 -->
+        <div class="table-section">
+          <h2 class="table-title">
+            <i class="fas fa-table"></i>
+            <span>这些同学正在接取任务</span>
+          </h2>
+          <div class="table-container">
+            <div class="scroll-wrapper">
+              <table id="resultTable" class="result-table">
+                <!-- 表头将通过JavaScript动态生成 -->
+              </table>
+              <div class="scroll-container">
+                <table class="result-table result-table-scroll">
+                  <!-- 表体将通过JavaScript动态生成 -->
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1494,7 +1640,8 @@
       // CSV数据解析和加载
       async function loadCSVData() {
         try {
-          const response = await fetch("data/商单信息统计.csv");
+          // 从任务统计表.csv读取数据
+          const response = await fetch("data/任务统计表.csv");
 
           // Check if the response is ok (status code 200-299)
           if (!response.ok) {
@@ -1528,56 +1675,73 @@
           .filter((line) => line.trim() !== "");
         if (lines.length === 0) return [];
 
-        // Parse the CSV properly, handling quoted fields that may contain commas
-        const headers = parseCSVLine(lines[0]);
-
-        // Validate that required headers are present
-        const requiredHeaders = [
-          "商单id",
-          "商单标题",
-          "需求类型",
-          "商单状态",
-          "预算范围",
-          "发布时间",
+        // 手动定义表头，因为CSV第一行的格式可能有问题
+        const headers = [
+          "单子名称",
+          "任务类型",
+          "订单渠道",
+          "接单结果",
+          "金额",
+          "订单完成日期",
+          "接单人员",
+          "截图",
+          "交付学员结果",
+          "学员实收金额",
         ];
-        const missingHeaders = requiredHeaders.filter(
-          (header) => !headers.includes(header)
+
+        // 定义需要的列映射，将任务统计表的列映射到之前的字段名
+        const requiredColumns = [
+          "单子名称",
+          "任务类型",
+          "接单结果",
+          "金额",
+          "订单完成日期",
+        ];
+
+        // 检查必需的列是否存在
+        const missingColumns = requiredColumns.filter(
+          (column) => !headers.includes(column)
         );
 
-        if (missingHeaders.length > 0) {
-          console.error("CSV文件缺少必需的列:", missingHeaders);
-          alert(`CSV文件缺少必需的列: ${missingHeaders.join(", ")}`);
+        if (missingColumns.length > 0) {
+          console.error("任务统计表缺少必需的列:", missingColumns);
+          alert(`任务统计表缺少必需的列: ${missingColumns.join(", ")}`);
           return [];
         }
 
         const data = [];
 
+        // 从第2行开始解析数据（跳过表头）
         for (let i = 1; i < lines.length; i++) {
           const values = parseCSVLine(lines[i]);
-          if (values.length === headers.length) {
+          if (values.length >= requiredColumns.length) {
             const row = {};
+
+            // 直接使用解析出的表头来构建行数据
             headers.forEach((header, index) => {
               row[header] = values[index] || "";
             });
 
-            // Validate that required fields have values
-            const hasRequiredFields = requiredHeaders.every(
-              (header) => row[header] && row[header].trim() !== ""
-            );
+            // 只添加有实际数据的行
+            if (row["单子名称"] && row["单子名称"].trim() !== "") {
+              // 添加商单id（使用行号作为id）
+              row["商单id"] = i;
+              // 添加商单标题（对应单子名称）
+              row["商单标题"] = row["单子名称"];
+              // 添加需求类型（对应任务类型）
+              row["需求类型"] = row["任务类型"];
+              // 添加商单状态（对应接单结果）
+              row["商单状态"] = row["接单结果"];
+              // 添加预算范围（对应金额）
+              row["预算范围"] = row["金额"];
+              // 添加发布时间（对应订单完成日期）
+              row["发布时间"] = row["订单完成日期"];
 
-            // 只添加有实际数据且包含必需字段的行
-            if (row["商单id"] && hasRequiredFields) {
               data.push(row);
-            } else if (
-              row["商单id"] ||
-              Object.values(row).some((val) => val !== "")
-            ) {
-              // If the row has an ID or any other data but is missing required fields, log a warning
-              console.warn(`行 ${i + 1} 缺少必需字段，已跳过:`, row);
             }
           } else {
-            // Log a warning if the row doesn't have the expected number of columns
-            console.warn(`行 ${i + 1} 的列数与表头不匹配，已跳过:`, lines[i]);
+            // Log a warning if the row doesn't have enough columns
+            console.warn(`行 ${i + 1} 缺少必需的列数据，已跳过:`, lines[i]);
           }
         }
 
@@ -1632,29 +1796,34 @@
           const orderCard = document.createElement("div");
           orderCard.className = "order-card";
 
-          // 确定进度状态类
+          // 确定进度状态类 - 根据接单结果确定
           let progressClass = "progress-active";
-          if (order["项目进度"] === "已完成") {
+          if (order["商单状态"] && order["商单状态"].includes("已完成")) {
             progressClass = "progress-completed";
+          } else if (
+            order["商单状态"] &&
+            order["商单状态"].includes("制作中")
+          ) {
+            progressClass = "progress-active";
+          } else {
+            progressClass = "progress-active";
           }
 
           // 确定状态文本和类
           let statusClass = "status-active";
-          if (order["商单状态"] === "已完成") {
+          if (order["商单状态"] && order["商单状态"].includes("已完成")) {
             statusClass = "status-completed";
-          } else if (order["商单状态"] === "待开始") {
+          } else if (
+            order["商单状态"] &&
+            order["商单状态"].includes("制作中")
+          ) {
+            statusClass = "status-active";
+          } else {
             statusClass = "status-pending";
           }
 
           orderCard.innerHTML = `
             <div class="card-header">
-              ${
-                order["标签信息"]
-                  ? `<span class="card-badge badge-${order[
-                      "标签信息"
-                    ].toLowerCase()}">${order["标签信息"]}</span>`
-                  : ""
-              }
               <div class="order-title">${order["商单标题"]}</div>
               <span class="order-type">${order["需求类型"]}</span>
             </div>
@@ -1666,7 +1835,7 @@
                 <div class="info-content">
                   <div class="info-label">商单状态</div>
                   <div class="info-value ${statusClass}">${
-            order["商单状态"]
+            order["商单状态"] || "未知状态"
           }</div>
                 </div>
               </div>
@@ -1675,7 +1844,7 @@
                   <i class="fas fa-tags"></i>
                 </div>
                 <div class="info-content">
-                  <div class="info-label">需求类型</div>
+                  <div class="info-label">任务类型</div>
                   <div class="info-value">${order["需求类型"]}</div>
                 </div>
               </div>
@@ -1684,7 +1853,7 @@
                   <i class="fas fa-dollar-sign"></i>
                 </div>
                 <div class="info-content">
-                  <div class="info-label">预算</div>
+                  <div class="info-label">金额</div>
                   <div class="info-value">¥${order["预算范围"]}</div>
                 </div>
               </div>
@@ -1695,10 +1864,11 @@
             <div class="card-footer">
               <div class="publish-time">
                 <i class="far fa-clock"></i>
-                <span>发布时间: ${formatDate(order["发布时间"])}</span>
+                <span>发布日期: ${
+                  formatDate(order["发布时间"]) || "未完成"
+                }</span>
               </div>
               <div class="action-buttons">
-                <button class="bookmark" onclick="window.open('https://qm.qq.com/q/VkWeRQu8Qo', '_blank')">我要抢单</button>
                 <button class="view-details" data-id="${
                   order["商单id"]
                 }">查看详情</button>
@@ -1718,49 +1888,49 @@
         // Create a copy of the orders array to avoid modifying the original
         const sortedOrders = [...orders];
 
-        switch (sortValue) {
-          case "newest":
-            // Sort by newest publish date first
-            return sortedOrders.sort((a, b) => {
-              const dateA = new Date(a["发布时间"]);
-              const dateB = new Date(b["发布时间"]);
+        // Common sort function that first sorts by status (制作中 > 其他), then by the specified criteria
+        function commonSort(a, b) {
+          // First sort by status: all "制作中" tasks come first
+          const isAInProgress =
+            a["商单状态"] && a["商单状态"].includes("制作中");
+          const isBInProgress =
+            b["商单状态"] && b["商单状态"].includes("制作中");
+
+          if (isAInProgress !== isBInProgress) {
+            return isAInProgress ? -1 : 1; // 制作中任务排在前面
+          }
+
+          // Then sort by the specified criteria
+          switch (sortValue) {
+            case "newest":
+              const dateA = new Date(a["发布时间"] || 0);
+              const dateB = new Date(b["发布时间"] || 0);
               return dateB - dateA; // Descending order (newest first)
-            });
 
-          case "oldest":
-            // Sort by oldest publish date first
-            return sortedOrders.sort((a, b) => {
-              const dateA = new Date(a["发布时间"]);
-              const dateB = new Date(b["发布时间"]);
-              return dateA - dateB; // Ascending order (oldest first)
-            });
+            case "oldest":
+              const oldDateA = new Date(a["发布时间"] || 0);
+              const oldDateB = new Date(b["发布时间"] || 0);
+              return oldDateA - oldDateB; // Ascending order (oldest first)
 
-          case "highestBudget":
-            // Sort by highest budget first
-            return sortedOrders.sort((a, b) => {
-              // Extract numeric values from budget ranges
+            case "highestBudget":
               const budgetA = extractNumericBudget(a["预算范围"]);
               const budgetB = extractNumericBudget(b["预算范围"]);
               return budgetB - budgetA; // Descending order (highest first)
-            });
 
-          case "lowestBudget":
-            // Sort by lowest budget first
-            return sortedOrders.sort((a, b) => {
-              // Extract numeric values from budget ranges
-              const budgetA = extractNumericBudget(a["预算范围"]);
-              const budgetB = extractNumericBudget(b["预算范围"]);
-              return budgetA - budgetB; // Ascending order (lowest first)
-            });
+            case "lowestBudget":
+              const lowBudgetA = extractNumericBudget(a["预算范围"]);
+              const lowBudgetB = extractNumericBudget(b["预算范围"]);
+              return lowBudgetA - lowBudgetB; // Ascending order (lowest first)
 
-          default:
-            // Default to newest if no valid sort option
-            return sortedOrders.sort((a, b) => {
-              const dateA = new Date(a["发布时间"]);
-              const dateB = new Date(b["发布时间"]);
-              return dateB - dateA; // Descending order (newest first)
-            });
+            default:
+              // Default to newest if no valid sort option
+              const defaultDateA = new Date(a["发布时间"] || 0);
+              const defaultDateB = new Date(b["发布时间"] || 0);
+              return defaultDateB - defaultDateA; // Descending order (newest first)
+          }
         }
+
+        return sortedOrders.sort(commonSort);
       }
 
       // Helper function to extract numeric budget value from range string
@@ -1832,8 +2002,10 @@
               return;
             }
 
-            const orderTitle = this.querySelector(".order-title").textContent;
-            alert(`您点击了"${orderTitle}"的卡片`);
+            // 跳转到详情页面，获取订单ID
+            const viewButton = this.querySelector(".view-details");
+            const orderId = viewButton.getAttribute("data-id");
+            window.location.href = `detail.html?id=${orderId}`;
           });
         });
 
@@ -1843,23 +2015,6 @@
             const orderId = this.getAttribute("data-id");
             // 跳转到详情页面，传递订单ID
             window.location.href = `detail.html?id=${orderId}`;
-          });
-        });
-
-        // 抢单按钮点击事件
-        const bookmarkButtons = document.querySelectorAll(".bookmark");
-        bookmarkButtons.forEach((button) => {
-          button.addEventListener("click", function (e) {
-            e.stopPropagation(); // 阻止事件冒泡到卡片
-            this.classList.toggle("bookmarked");
-
-            if (this.classList.contains("bookmarked")) {
-              this.style.background = "#ff6b6b";
-              this.style.color = "white";
-            } else {
-              this.style.background = "#f1f2f6";
-              this.style.color = "#7f8c8d";
-            }
           });
         });
 
@@ -2172,10 +2327,12 @@
         const totalOrders = orders.length;
         const activeOrders = orders.filter(
           (order) =>
-            order["商单状态"] === "进行中" || order["商单状态"] === "待开始"
+            order["商单状态"] &&
+            (order["商单状态"].includes("制作中") ||
+              order["商单状态"].includes("待开始"))
         ).length;
         const completedOrders = orders.filter(
-          (order) => order["商单状态"] === "已完成"
+          (order) => order["商单状态"] && order["商单状态"].includes("已完成")
         ).length;
 
         document.querySelector(
@@ -2191,8 +2348,12 @@
 
       // 带分页的订单渲染
       function renderOrderCardsWithPagination(orders) {
-        filteredOrders = orders;
-        const totalPages = Math.ceil(orders.length / itemsPerPage);
+        // 先对整个数据集进行排序，确保所有制作中的任务都集中在前面
+        const sortValue = document.getElementById("sortFilter").value;
+        const sortedOrders = sortOrders(orders, sortValue);
+
+        filteredOrders = sortedOrders;
+        const totalPages = Math.ceil(sortedOrders.length / itemsPerPage);
 
         // 确保当前页在有效范围内
         if (currentPage > totalPages && totalPages > 0) {
@@ -2203,8 +2364,11 @@
 
         // 计算当前页的数据
         const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = Math.min(startIndex + itemsPerPage, orders.length);
-        const currentOrders = orders.slice(startIndex, endIndex);
+        const endIndex = Math.min(
+          startIndex + itemsPerPage,
+          sortedOrders.length
+        );
+        const currentOrders = sortedOrders.slice(startIndex, endIndex);
 
         // 渲染当前页的订单
         renderOrderCards(currentOrders);
@@ -2230,7 +2394,128 @@
           // 初始化统计数据
           updateStats(orders);
         }
+
+        // 加载并渲染接单结果统计表
+        await loadAndRenderResultTable();
       });
+
+      // 加载并渲染接单结果统计表
+      async function loadAndRenderResultTable() {
+        try {
+          const response = await fetch("data/接单结果统计表.csv");
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const csvText = await response.text();
+          const tableData = parseResultCSV(csvText);
+          renderResultTable(tableData);
+        } catch (error) {
+          console.error("加载接单结果统计表失败:", error);
+          const tableContainer = document.querySelector(".table-container");
+          tableContainer.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #e74c3c;">
+              <h3><i class="fas fa-exclamation-triangle"></i> 数据加载失败</h3>
+              <p>无法加载接单结果统计表，请检查文件是否存在或网络连接是否正常</p>
+              <p style="font-size: 14px; color: #95a5a6; margin-top: 10px;">错误详情: ${error.message}</p>
+            </div>
+          `;
+        }
+      }
+
+      // 解析接单结果统计表CSV
+      function parseResultCSV(csvText) {
+        const lines = csvText.split(/\r?\n/);
+        if (lines.length === 0) return { headers: [], data: [] };
+
+        // 定义不包含截图列和序号列的表头
+        const headers = [
+          "接单类型",
+          "学员姓名",
+          "学员接单时间",
+          "接单结果",
+          "金额",
+          "辅导老师",
+        ];
+
+        // 处理学员姓名，从"XH11382006_张航瑞"格式转换为"张同学"格式
+        function formatStudentName(nameStr) {
+          if (!nameStr || nameStr.trim() === "") {
+            return "";
+          }
+
+          // 处理多个学员的情况，按空格分割
+          const students = nameStr
+            .split(/\s+/)
+            .filter((student) => student.trim() !== "");
+
+          return students
+            .map((student) => {
+              // 提取中文姓名的第一个字
+              const chineseName = student.replace(/^[A-Z0-9_]+/, "");
+              if (chineseName && chineseName.length > 0) {
+                return `${chineseName.charAt(0)}同学`;
+              }
+              return "";
+            })
+            .filter((name) => name !== "")
+            .join(" ");
+        }
+
+        const data = [];
+        // 从第2行开始解析数据
+        for (let i = 2; i < lines.length; i++) {
+          const values = parseCSVLine(lines[i]);
+
+          // 过滤掉完全空的行，但保留总计行（最后一行）
+          const isEmptyRow = values.every((val) => val.trim() === "");
+          const isTotalRow = i === lines.length - 1; // 最后一行是总计行
+
+          if (!isEmptyRow || isTotalRow) {
+            const row = {};
+            headers.forEach((header, index) => {
+              let value = values[index + 1] || "";
+
+              // 处理学员姓名列
+              if (header === "学员姓名" && value) {
+                value = formatStudentName(value);
+              }
+
+              row[header] = value;
+            });
+            data.push(row);
+          }
+        }
+        return { headers, data };
+      }
+
+      // 渲染接单结果统计表
+      function renderResultTable(tableData) {
+        const { headers, data } = tableData;
+
+        // 1. 渲染固定表头到第一个表格
+        const headerTable = document.getElementById("resultTable");
+        let theadHTML = `<thead><tr>`;
+        headers.forEach((header) => {
+          theadHTML += `<th>${header}</th>`;
+        });
+        theadHTML += `</tr></thead>`;
+        headerTable.innerHTML = theadHTML;
+
+        // 2. 生成表体HTML
+        let tbodyHTML = `<tbody>`;
+        data.forEach((row) => {
+          tbodyHTML += `<tr>`;
+          headers.forEach((header) => {
+            tbodyHTML += `<td>${row[header] || ""}</td>`;
+          });
+          tbodyHTML += `</tr>`;
+        });
+        tbodyHTML += `</tbody>`;
+
+        // 3. 渲染滚动表体到第二个表格，复制两份数据实现无缝滚动
+        const scrollTable = document.querySelector(".result-table-scroll");
+        scrollTable.innerHTML = tbodyHTML + tbodyHTML;
+      }
     </script>
   </body>
 </html>
