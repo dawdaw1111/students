@@ -2402,7 +2402,7 @@
       // 加载并渲染接单结果统计表
       async function loadAndRenderResultTable() {
         try {
-          const response = await fetch("data/接单结果统计表.csv");
+          const response = await fetch("data/接单结果统计表aigc.csv");
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
