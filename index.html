@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>逻纪任务通666</title>
+    <title>逻纪任务通</title>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -2437,21 +2437,41 @@
           "辅导老师",
         ];
 
-        // 处理学员姓名，从"XH11382006_张航瑞"格式转换为"张同学"格式
+        // 处理学员姓名，支持多种格式转换为"X同学"格式
         function formatStudentName(nameStr) {
           if (!nameStr || nameStr.trim() === "") {
             return "";
           }
 
-          // 处理多个学员的情况，按空格分割
+          // 处理多个学员的情况，按换行或多个空格分割
           const students = nameStr
-            .split(/\s+/)
+            .split(/[\r\n\s]+/)
             .filter((student) => student.trim() !== "");
 
           return students
             .map((student) => {
               // 提取中文姓名的第一个字
-              const chineseName = student.replace(/^[A-Z0-9_]+/, "");
+              // 支持格式：
+              // 1. XH118104008_胡鑫 → 胡同学
+              // 2. 1168-李治豪 → 李同学
+              // 3. 1189余晨海 → 余同学
+              // 4. 骑着蜗牛追火箭 → 骑同学
+              // 5. 多个学员的情况，按空格分割
+              let chineseName = student;
+
+              // 处理带下划线的格式：XH118104008_胡鑫 → 胡鑫
+              if (chineseName.includes("_")) {
+                chineseName = chineseName.split("_")[1];
+              }
+
+              // 处理带横线的格式：1168-李治豪 → 李治豪
+              if (chineseName.includes("-")) {
+                chineseName = chineseName.split("-")[1];
+              }
+
+              // 处理纯数字+姓名格式：1189余晨海 → 余晨海
+              chineseName = chineseName.replace(/^\d+/, "");
+
               if (chineseName && chineseName.length > 0) {
                 return `${chineseName.charAt(0)}同学`;
               }
@@ -2466,22 +2486,43 @@
         for (let i = 2; i < lines.length; i++) {
           const values = parseCSVLine(lines[i]);
 
-          // 过滤掉完全空的行，但保留总计行（最后一行）
+          // 过滤掉完全空的行
           const isEmptyRow = values.every((val) => val.trim() === "");
-          const isTotalRow = i === lines.length - 1; // 最后一行是总计行
+          if (isEmptyRow) continue;
 
-          if (!isEmptyRow || isTotalRow) {
-            const row = {};
-            headers.forEach((header, index) => {
-              let value = values[index + 1] || "";
+          // 确保有足够的数据列
+          if (values.length < 8) continue;
 
-              // 处理学员姓名列
-              if (header === "学员姓名" && value) {
+          // 映射数据到表头，适配新的CSV格式
+          const row = {};
+          headers.forEach((header) => {
+            let value = "";
+            switch (header) {
+              case "接单类型":
+                value = values[1] ? values[1].trim() : "";
+                break;
+              case "学员姓名":
+                value = values[3] ? values[3].trim() : "";
                 value = formatStudentName(value);
-              }
+                break;
+              case "学员接单时间":
+                value = values[4] ? values[4].trim() : "";
+                break;
+              case "接单结果":
+                value = values[5] ? values[5].trim() : "";
+                break;
+              case "金额":
+                value = values[6] ? values[6].trim() : "";
+                break;
+              case "辅导老师":
+                value = values[7] ? values[7].trim() : "";
+                break;
+            }
+            row[header] = value;
+          });
 
-              row[header] = value;
-            });
+          // 只添加有实际数据的行
+          if (row["接单类型"] || row["学员姓名"] || row["接单结果"]) {
             data.push(row);
           }
         }
