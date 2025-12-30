@@ -1641,7 +1641,7 @@
       async function loadCSVData() {
         try {
           // 从任务统计表.csv读取数据
-          const response = await fetch("data/任务统计表aigc.csv");
+          const response = await fetch("data/任务统计表.csv");
 
           // Check if the response is ok (status code 200-299)
           if (!response.ok) {
@@ -2402,7 +2402,7 @@
       // 加载并渲染接单结果统计表
       async function loadAndRenderResultTable() {
         try {
-          const response = await fetch("data/接单结果统计表aigc.csv");
+          const response = await fetch("data/接单结果统计表.csv");
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
