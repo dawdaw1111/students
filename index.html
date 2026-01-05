@@ -1809,9 +1809,18 @@
             progressClass = "progress-active";
           }
 
-          // 确定状态文本和类
+          // 处理状态文本，将"完成"转换为"已交付"
+          function getStatusText(statusStr) {
+            if (!statusStr || statusStr.trim() === "") {
+              return "未知状态";
+            }
+            // 将"完成"转换为"已交付"
+            return statusStr.includes("完成") ? "已交付" : statusStr;
+          }
+
+          // 确定状态类
           let statusClass = "status-active";
-          if (order["商单状态"] && order["商单状态"].includes("已完成")) {
+          if (order["商单状态"] && order["商单状态"].includes("完成")) {
             statusClass = "status-completed";
           } else if (
             order["商单状态"] &&
@@ -1834,9 +1843,9 @@
                 </div>
                 <div class="info-content">
                   <div class="info-label">商单状态</div>
-                  <div class="info-value ${statusClass}">${
-            order["商单状态"] || "未知状态"
-          }</div>
+                  <div class="info-value ${statusClass}">${getStatusText(
+            order["商单状态"]
+          )}</div>
                 </div>
               </div>
               <div class="info-item">

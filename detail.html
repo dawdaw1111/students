@@ -1016,21 +1016,38 @@
         // 生成随机客户信息
         const clientInfo = generateRandomClientInfo();
 
+        // 处理状态文本，将"完成"转换为"已交付"
+        function getStatusText(statusStr) {
+          if (!statusStr || statusStr.trim() === "") {
+            return "未知状态";
+          }
+          // 将"完成"转换为"已交付"
+          return statusStr.includes("完成") ? "已交付" : statusStr;
+        }
+
         // 确定进度状态类
         let progressClass = "progress-active";
-        if (order["项目进度"] === "已完成") {
+        if (order["项目进度"] && order["项目进度"].includes("已完成")) {
+          progressClass = "progress-completed";
+        } else if (order["项目进度"] && order["项目进度"].includes("完成")) {
           progressClass = "progress-completed";
         }
 
         // 确定状态文本和类
         let statusClass = "status-active";
-        if (order["商单状态"] === "已完成") {
+        if (order["商单状态"] && order["商单状态"].includes("已完成")) {
+          statusClass = "status-completed";
+        } else if (order["商单状态"] && order["商单状态"].includes("完成")) {
           statusClass = "status-completed";
         } else if (order["商单状态"] === "待开始") {
           statusClass = "status-pending";
         }
 
-        const progressWidth = order["项目进度"] === "已完成" ? "100%" : "65%";
+        const progressWidth =
+          order["项目进度"] === "已完成" ||
+          (order["项目进度"] && order["项目进度"].includes("完成"))
+            ? "100%"
+            : "65%";
 
         document.getElementById("detail-content").innerHTML = `
         <div class="detail-content fade-in">
@@ -1044,9 +1061,9 @@
               </div>
               <div class="order-meta">
                 <span class="order-type">${order["需求类型"]}</span>
-                <span class="order-status ${statusClass}">${
+                <span class="order-status ${statusClass}">${getStatusText(
           order["商单状态"]
-        }</span>
+        )}</span>
               </div>
             </div>
             
@@ -1086,9 +1103,9 @@
                 </div>
                 <div class="info-item">
                   <div class="info-label">商单状态</div>
-                  <div class="info-value ${statusClass}">${
+                  <div class="info-value ${statusClass}">${getStatusText(
           order["商单状态"]
-        }</div>
+        )}</div>
                 </div>
                 <div class="info-item">
                   <div class="info-label">预算范围</div>
