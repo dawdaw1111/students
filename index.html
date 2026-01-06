@@ -919,7 +919,7 @@
         font-weight: 600;
         padding: 12px 15px;
         text-align: left;
-        border-bottom: 2px solid #4a90e2;
+
         position: sticky;
         top: 0;
         z-index: 10;
@@ -2028,32 +2028,136 @@
         });
 
         // 搜索功能
+        function performSearch() {
+          const searchTerm = document
+            .querySelector(".search-bar input")
+            .value.toLowerCase();
+
+          // 基于所有数据进行搜索
+          if (window.allOrders) {
+            // 先应用搜索过滤
+            let filteredOrders = window.allOrders.filter((order) => {
+              const title = order["商单标题"]
+                ? order["商单标题"].toLowerCase()
+                : "";
+              const type = order["需求类型"]
+                ? order["需求类型"].toLowerCase()
+                : "";
+              const status = order["商单状态"]
+                ? order["商单状态"].toLowerCase()
+                : "";
+
+              // 搜索标题、需求类型、商单状态
+              return (
+                title.includes(searchTerm) ||
+                type.includes(searchTerm) ||
+                status.includes(searchTerm)
+              );
+            });
+
+            // 然后应用其他筛选条件
+            const typeValue = document.getElementById("typeFilter").value;
+            const statusValue = document.getElementById("statusFilter").value;
+            const budgetValue = document.getElementById("budgetFilter").value;
+            const timeValue = document.getElementById("timeFilter").value;
+
+            // 应用类型筛选
+            if (typeValue) {
+              filteredOrders = filteredOrders.filter(
+                (order) => order["需求类型"] === typeValue
+              );
+            }
+
+            // 应用状态筛选
+            if (statusValue) {
+              filteredOrders = filteredOrders.filter(
+                (order) => order["商单状态"] === statusValue
+              );
+            }
+
+            // 应用预算筛选
+            if (budgetValue) {
+              filteredOrders = filteredOrders.filter((order) => {
+                const budget = order["预算范围"];
+                if (!budget) return false;
+
+                let minBudget = 0;
+                let maxBudget = Infinity;
+
+                if (budget.includes(" - ")) {
+                  const range = budget.split(" - ");
+                  minBudget = parseFloat(range[0].replace(/[¥,]/g, "")) || 0;
+                  maxBudget =
+                    parseFloat(range[1].replace(/[¥,]/g, "")) || Infinity;
+                } else if (budget.includes("~")) {
+                  const range = budget.split("~");
+                  minBudget = parseFloat(range[0]) || 0;
+                  maxBudget = parseFloat(range[1]) || Infinity;
+                } else {
+                  const budgetStr = budget.replace(/[¥,+]/g, "").trim();
+                  minBudget = parseFloat(budgetStr) || 0;
+                  maxBudget = minBudget;
+                }
+
+                switch (budgetValue) {
+                  case "low":
+                    return maxBudget <= 5000;
+                  case "medium":
+                    return minBudget >= 5000 && maxBudget <= 20000;
+                  case "high":
+                    return minBudget >= 20000;
+                  default:
+                    return true;
+                }
+              });
+            }
+
+            // 应用时间筛选
+            if (timeValue) {
+              const currentDate = new Date();
+              filteredOrders = filteredOrders.filter((order) => {
+                const orderDate = new Date(order["发布时间"]);
+
+                if (isNaN(orderDate)) return false;
+
+                if (timeValue === "week") {
+                  const weekAgo = new Date();
+                  weekAgo.setDate(currentDate.getDate() - 7);
+                  return orderDate >= weekAgo && orderDate <= currentDate;
+                } else if (timeValue === "month") {
+                  const monthAgo = new Date();
+                  monthAgo.setMonth(currentDate.getMonth() - 1);
+                  return orderDate >= monthAgo && orderDate <= currentDate;
+                } else if (timeValue === "quarter") {
+                  const quarterAgo = new Date();
+                  quarterAgo.setMonth(currentDate.getMonth() - 3);
+                  return orderDate >= quarterAgo && orderDate <= currentDate;
+                }
+
+                return true;
+              });
+            }
+
+            // 重置到第一页
+            currentPage = 1;
+
+            // 渲染搜索结果
+            renderOrderCardsWithPagination(filteredOrders);
+            renderPaginationControls(filteredOrders.length);
+          }
+        }
+
+        // 搜索按钮事件监听
         document
           .querySelector(".search-bar button")
-          .addEventListener("click", function () {
-            const searchTerm = document
-              .querySelector(".search-bar input")
-              .value.toLowerCase();
-            const orderCards = document.querySelectorAll(".order-card");
-
-            orderCards.forEach((card) => {
-              const title = card
-                .querySelector(".order-title")
-                .textContent.toLowerCase();
-              if (title.includes(searchTerm)) {
-                card.style.display = "flex";
-              } else {
-                card.style.display = "none";
-              }
-            });
-          });
+          .addEventListener("click", performSearch);
 
         // 回车搜索
         document
           .querySelector(".search-bar input")
           .addEventListener("keypress", function (e) {
             if (e.key === "Enter") {
-              document.querySelector(".search-bar button").click();
+              performSearch();
             }
           });
 
@@ -2386,6 +2490,124 @@
         updateStats(orders);
       }
 
+      // 搜索功能 - 全局函数
+      function performSearch() {
+        const searchTerm = document
+          .querySelector(".search-bar input")
+          .value.toLowerCase();
+
+        // 基于所有数据进行搜索
+        if (window.allOrders) {
+          // 先应用搜索过滤
+          let filteredOrders = window.allOrders.filter((order) => {
+            const title = order["商单标题"]
+              ? order["商单标题"].toLowerCase()
+              : "";
+            const type = order["需求类型"]
+              ? order["需求类型"].toLowerCase()
+              : "";
+            const status = order["商单状态"]
+              ? order["商单状态"].toLowerCase()
+              : "";
+            return (
+              title.includes(searchTerm) ||
+              type.includes(searchTerm) ||
+              status.includes(searchTerm)
+            );
+          });
+
+          // 然后应用其他筛选条件
+          const typeValue = document.getElementById("typeFilter").value;
+          const statusValue = document.getElementById("statusFilter").value;
+          const budgetValue = document.getElementById("budgetFilter").value;
+          const timeValue = document.getElementById("timeFilter").value;
+
+          // 应用类型筛选
+          if (typeValue) {
+            filteredOrders = filteredOrders.filter(
+              (order) => order["需求类型"] === typeValue
+            );
+          }
+
+          // 应用状态筛选
+          if (statusValue) {
+            filteredOrders = filteredOrders.filter(
+              (order) => order["商单状态"] === statusValue
+            );
+          }
+
+          // 应用预算筛选
+          if (budgetValue) {
+            filteredOrders = filteredOrders.filter((order) => {
+              const budget = order["预算范围"];
+              if (!budget) return false;
+
+              let minBudget = 0;
+              let maxBudget = Infinity;
+
+              if (budget.includes(" - ")) {
+                const range = budget.split(" - ");
+                minBudget = parseFloat(range[0].replace(/[¥,]/g, "")) || 0;
+                maxBudget =
+                  parseFloat(range[1].replace(/[¥,]/g, "")) || Infinity;
+              } else if (budget.includes("~")) {
+                const range = budget.split("~");
+                minBudget = parseFloat(range[0]) || 0;
+                maxBudget = parseFloat(range[1]) || Infinity;
+              } else {
+                const budgetStr = budget.replace(/[¥,+]/g, "").trim();
+                minBudget = parseFloat(budgetStr) || 0;
+                maxBudget = minBudget;
+              }
+
+              switch (budgetValue) {
+                case "low":
+                  return maxBudget <= 5000;
+                case "medium":
+                  return minBudget >= 5000 && maxBudget <= 20000;
+                case "high":
+                  return minBudget >= 20000;
+                default:
+                  return true;
+              }
+            });
+          }
+
+          // 应用时间筛选
+          if (timeValue) {
+            const currentDate = new Date();
+            filteredOrders = filteredOrders.filter((order) => {
+              const orderDate = new Date(order["发布时间"]);
+
+              if (isNaN(orderDate)) return false;
+
+              if (timeValue === "week") {
+                const weekAgo = new Date();
+                weekAgo.setDate(currentDate.getDate() - 7);
+                return orderDate >= weekAgo && orderDate <= currentDate;
+              } else if (timeValue === "month") {
+                const monthAgo = new Date();
+                monthAgo.setMonth(currentDate.getMonth() - 1);
+                return orderDate >= monthAgo && orderDate <= currentDate;
+              } else if (timeValue === "quarter") {
+                const quarterAgo = new Date();
+                quarterAgo.setMonth(currentDate.getMonth() - 3);
+                return orderDate >= quarterAgo && orderDate <= currentDate;
+              }
+
+              return true;
+            });
+          }
+
+          // 重置到第一页
+          currentPage = 1;
+
+          // 渲染搜索结果
+          renderOrderCardsWithPagination(filteredOrders);
+          renderPaginationControls(filteredOrders.length);
+        }
+      }
+
       // 页面加载完成后加载数据
       document.addEventListener("DOMContentLoaded", async function () {
         const orders = await loadCSVData();
@@ -2406,6 +2628,20 @@
 
         // 加载并渲染接单结果统计表
         await loadAndRenderResultTable();
+
+        // 绑定搜索事件
+        document
+          .querySelector(".search-bar button")
+          .addEventListener("click", performSearch);
+
+        // 绑定回车搜索事件
+        document
+          .querySelector(".search-bar input")
+          .addEventListener("keypress", function (e) {
+            if (e.key === "Enter") {
+              performSearch();
+            }
+          });
       });
 
       // 加载并渲染接单结果统计表
