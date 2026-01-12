@@ -2298,7 +2298,6 @@
 
           // Apply sorting to the filtered orders
           const sortedFilteredOrders = sortOrders(filteredOrders, sortValue);
-
           // Render the filtered and sorted orders with pagination
           currentPage = 1; // Reset to first page when filters change
           renderOrderCardsWithPagination(sortedFilteredOrders);
@@ -2381,6 +2380,7 @@
           pageButton.textContent = i;
           pageButton.classList.add("page-number");
           if (i === currentPage) {
+            // 当前页添加 active 类
             pageButton.classList.add("active");
           }
           pageButton.addEventListener("click", () => {
