@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
@@ -1675,12 +1675,13 @@
           .filter((line) => line.trim() !== "");
         if (lines.length === 0) return [];
 
-        // 手动定义表头，因为CSV第一行的格式可能有问题
+        // 手动定义表头，根据实际CSV文件结构
         const headers = [
           "单子名称",
           "任务类型",
           "订单渠道",
           "接单结果",
+          "接单日期",
           "金额",
           "订单完成日期",
           "接单人员",
@@ -1694,13 +1695,14 @@
           "单子名称",
           "任务类型",
           "接单结果",
+          "接单日期",
           "金额",
           "订单完成日期",
         ];
 
         // 检查必需的列是否存在
         const missingColumns = requiredColumns.filter(
-          (column) => !headers.includes(column)
+          (column) => !headers.includes(column),
         );
 
         if (missingColumns.length > 0) {
@@ -1844,8 +1846,8 @@
                 <div class="info-content">
                   <div class="info-label">商单状态</div>
                   <div class="info-value ${statusClass}">${getStatusText(
-            order["商单状态"]
-          )}</div>
+                    order["商单状态"],
+                  )}</div>
                 </div>
               </div>
               <div class="info-item">
@@ -2064,14 +2066,14 @@
             // 应用类型筛选
             if (typeValue) {
               filteredOrders = filteredOrders.filter(
-                (order) => order["需求类型"] === typeValue
+                (order) => order["需求类型"] === typeValue,
               );
             }
 
             // 应用状态筛选
             if (statusValue) {
               filteredOrders = filteredOrders.filter(
-                (order) => order["商单状态"] === statusValue
+                (order) => order["商单状态"] === statusValue,
               );
             }
 
@@ -2203,7 +2205,7 @@
               ", 状态: " +
               (statusValue || "全部") +
               ", 预算: " +
-              (budgetValue || "不限")
+              (budgetValue || "不限"),
           );
 
           // Filter the orders
@@ -2396,7 +2398,7 @@
           firstPageButton.addEventListener("click", () => goToPage(1));
           pageNumbersContainer.insertBefore(
             firstPageButton,
-            pageNumbersContainer.firstChild
+            pageNumbersContainer.firstChild,
           );
 
           // 如果首页和当前页之间有间隔，添加省略号
@@ -2406,7 +2408,7 @@
             ellipsis.style.padding = "0 5px";
             pageNumbersContainer.insertBefore(
               ellipsis,
-              pageNumbersContainer.firstChild.nextSibling
+              pageNumbersContainer.firstChild.nextSibling,
             );
           }
         }
@@ -2442,20 +2444,20 @@
           (order) =>
             order["商单状态"] &&
             (order["商单状态"].includes("制作中") ||
-              order["商单状态"].includes("待开始"))
+              order["商单状态"].includes("待开始")),
         ).length;
         const completedOrders = orders.filter(
-          (order) => order["商单状态"] && order["商单状态"].includes("已完成")
+          (order) => order["商单状态"] && order["商单状态"].includes("已完成"),
         ).length;
 
         document.querySelector(
-          ".stat-card:nth-child(1) .stat-info h3"
+          ".stat-card:nth-child(1) .stat-info h3",
         ).textContent = totalOrders;
         document.querySelector(
-          ".stat-card:nth-child(2) .stat-info h3"
+          ".stat-card:nth-child(2) .stat-info h3",
         ).textContent = activeOrders;
         document.querySelector(
-          ".stat-card:nth-child(3) .stat-info h3"
+          ".stat-card:nth-child(3) .stat-info h3",
         ).textContent = completedOrders;
       }
 
@@ -2479,7 +2481,7 @@
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = Math.min(
           startIndex + itemsPerPage,
-          sortedOrders.length
+          sortedOrders.length,
         );
         const currentOrders = sortedOrders.slice(startIndex, endIndex);
 
@@ -2525,14 +2527,14 @@
           // 应用类型筛选
           if (typeValue) {
             filteredOrders = filteredOrders.filter(
-              (order) => order["需求类型"] === typeValue
+              (order) => order["需求类型"] === typeValue,
             );
           }
 
           // 应用状态筛选
           if (statusValue) {
             filteredOrders = filteredOrders.filter(
-              (order) => order["商单状态"] === statusValue
+              (order) => order["商单状态"] === statusValue,
             );
           }
 
